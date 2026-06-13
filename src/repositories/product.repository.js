@@ -35,8 +35,8 @@ const getProducts = async (query) => {
   if (query.supplier) {
     const supplier = await Supplier.findOne({
       name: {
-        $regex: query.supplier,
-        $options: "i",
+        $regex: query.supplier, //to all match query value ex: query.supplier = "app" result: apple,Apple Mac
+        $options: "i",//case INSENSITIVE
       },
     }).select("_id");
     if (!supplier) {
@@ -76,19 +76,51 @@ const getProducts = async (query) => {
 
   const pipeline = [
     { $match: matchStage },
+
     {
       $lookup: {
         from: "categories",
-        localField: "categoryId",
-        foreignField: "_id",
+        let: { categoryId: "$categoryId" },
+
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$_id", "$$categoryId"],
+              },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              slug: 1,
+            },
+          },
+        ],
         as: "category",
       },
     },
     {
       $lookup: {
         from: "suppliers",
-        localField: "supplierId",
-        foreignField: "_id",
+        let: { supplierId: "$supplierId" },
+
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$_id", "$$supplierId"],
+              },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+            },
+          },
+        ],
         as: "supplier",
       },
     },
@@ -106,26 +138,6 @@ const getProducts = async (query) => {
     },
   ];
 
-  //category filter
-  if (query.category) {
-    pipeline.push({
-      $match: {
-        "category.slug": query.category,
-      },
-    });
-  }
-
-  //supplier filter
-  if (query.supplier) {
-    pipeline.push({
-      $match: {
-        "supplier.name": {
-          $regex: query.supplier, //to all match query value ex: query.supplier = "app" result: apple,Apple Mac
-          $options: "i", //case INSENSITIVE
-        },
-      },
-    });
-  }
 
   //project stage
   pipeline.push({
@@ -172,7 +184,6 @@ const getProducts = async (query) => {
     },
   });
 
-
   //return Product.aggregate(pipeline);
   const result = await Product.aggregate(pipeline);
 
@@ -191,6 +202,80 @@ const getProducts = async (query) => {
   };
 };
 
+const getProductBySlug = async (slug) => {
+  const result = await Product.aggregate([
+    {
+      $match: {
+        slug,
+        status: "ACTIVE",
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    {
+      $lookup: {
+        from: "suppliers",
+        localField: "supplierId",
+        foreignField: "_id",
+        as: "supplier",
+      },
+    },
+    {
+      $unwind: "$category",
+    },
+    {
+      $unwind: "$supplier",
+    },
+    {
+      $project: {
+        _id: 1,
+
+        name: 1,
+        slug: 1,
+
+        price: 1,
+        salePrice: 1,
+
+        quantity: 1,
+
+        isAvailable: 1,
+
+        brand: 1,
+
+        shortDescription: 1,
+        description: 1,
+
+        images: 1,
+
+        specifications: 1,
+
+        createdAt: 1,
+        updatedAt: 1,
+
+        category: {
+          id: "$category._id",
+          name: "$category.name",
+          slug: "$category.slug",
+        },
+
+        supplier: {
+          id: "$supplier._id",
+          name: "$supplier.name",
+        },
+      },
+    },
+  ]);
+  const product = result[0] || null;
+  return product;
+};
+
 module.exports = {
   getProducts,
+  getProductBySlug,
 };
