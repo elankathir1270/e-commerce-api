@@ -9,4 +9,8 @@ productRouter
   .route("/")
   .get(validate(getProductsSchema), productController.getProducts);
 
+productRouter
+    .route("/:slug")
+    .get(productController.getProductBySlug);
+
 module.exports = productRouter;
