@@ -7,7 +7,7 @@ const productRouter = express.Router();
 
 productRouter
   .route("/")
-  .get(validate(getProductsSchema), productController.getProducts);
+  .get(validate(getProductsSchema,"query"), productController.getProducts);
 
 productRouter
     .route("/:slug")
