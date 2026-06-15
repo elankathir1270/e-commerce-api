@@ -1,17 +1,10 @@
-const Joi = require('joi');
+const Joi = require("joi");
 
 //to validate req.query
 const getProductsSchema = Joi.object({
-      page: Joi.number()
-    .integer()
-    .min(1)
-    .default(1),
+  page: Joi.number().integer().min(1).default(1),
 
-  limit: Joi.number()
-    .integer()
-    .min(1)
-    .max(100)
-    .default(10),
+  limit: Joi.number().integer().min(1).max(100).default(10),
 
   category: Joi.string(),
 
@@ -21,11 +14,9 @@ const getProductsSchema = Joi.object({
 
   available: Joi.boolean(),
 
-  minPrice: Joi.number()
-    .min(0),
+  minPrice: Joi.number().min(0),
 
-  maxPrice: Joi.number()
-    .min(Joi.ref("minPrice")),
+  maxPrice: Joi.number().min(Joi.ref("minPrice")),
 
   sort: Joi.string().valid(
     "price",
@@ -33,10 +24,10 @@ const getProductsSchema = Joi.object({
     "name",
     "-name",
     "createdAt",
-    "-createdAt"
-  )
+    "-createdAt",
+  ),
 });
 
 module.exports = {
-    getProductsSchema
+  getProductsSchema,
 };

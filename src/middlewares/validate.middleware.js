@@ -1,6 +1,6 @@
-const validate = (schema) => {
+const validate = (schema, source = "query") => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.query, {
+    const { error, value } = schema.validate(req[source], {
       abortEarly: false,
       stripUnknown: true,
     });
@@ -11,7 +11,7 @@ const validate = (schema) => {
         message: error.details.map((d) => d.message).join(", "),
       });
     }
-    req.query = value;
+    req[source] = value;
     next();
   };
 };
