@@ -36,7 +36,7 @@ const getProducts = async (query) => {
     const supplier = await Supplier.findOne({
       name: {
         $regex: query.supplier, //to all match query value ex: query.supplier = "app" result: apple,Apple Mac
-        $options: "i",//case INSENSITIVE
+        $options: "i", //case INSENSITIVE
       },
     }).select("_id");
     if (!supplier) {
@@ -138,7 +138,6 @@ const getProducts = async (query) => {
     },
   ];
 
-
   //project stage
   pipeline.push({
     $project: {
@@ -227,10 +226,172 @@ const getProductBySlug = async (slug) => {
       },
     },
     {
-      $unwind: "$category",
+      //review statistics lookup
+      $lookup: {
+        from: "reviews",
+        let: { productId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$productId", "$$productId"],
+              },
+              status: "APPROVED",
+              isDeleted: false,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+
+              averageRating: {
+                $avg: "$rating",
+              },
+
+              reviewCount: {
+                $sum: 1,
+              },
+            },
+          },
+        ],
+        as: "reviewStats",
+      },
     },
     {
-      $unwind: "$supplier",
+      //rating distribution lookup
+      $lookup: {
+        from: "reviews",
+        let: {
+          productId: "$_id",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$productId", "$$productId"],
+              },
+              status: "APPROVED",
+              isDeleted: false,
+            },
+          },
+          {
+            $group: {
+              _id: "$rating",
+
+              count: {
+                $sum: 1,
+              },
+            },
+          },
+        ],
+        as: "ratingDistribution",
+      },
+    },
+    {
+      //recent reviews lookup
+      $lookup: {
+        from: "reviews",
+        let: {
+          productId: "$_id",
+        },
+
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: ["$productId", "$$productId"],
+              },
+              status: "APPROVED",
+              isDeleted: false,
+            },
+          },
+          {
+            $sort: {
+              createdAt: -1,
+            },
+          },
+          {
+            $limit: 5,
+          },
+          {
+            $project: {
+              reviewerName: 1,
+              rating: 1,
+              comment: 1,
+              createdAt: 1,
+            },
+          },
+        ],
+        as: "recentReviews",
+      },
+    },
+    {
+      //related products
+      $lookup: {
+        from: "products",
+        let: {
+          categoryId: "$categoryId",
+          currentProductId: "$_id",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $eq: ["$categoryId", "$$categoryId"],
+                  },
+                  {
+                    $ne: ["$_id", "$$currentProductId"],
+                  },
+                ],
+              },
+              status: "ACTIVE",
+              isAvailable: true,
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slug: 1,
+              price: 1,
+              salePrice: 1,
+            },
+          },
+          {
+            $limit: 4,
+          },
+        ],
+        as: "relatedProducts",
+      },
+    },
+    {
+      //flatten
+      $addFields: {
+        category: { $first: "$category" },
+        supplier: { $first: "$supplier" },
+        averageRating: {
+          $ifNull: [
+            {
+              $round: [
+                {
+                  $first: "$reviewStats.averageRating",
+                },
+                1,
+              ],
+            },
+            0,
+          ],
+        },
+        reviewCount: {
+          $ifNull: [
+            {
+              $first: "$reviewStats.reviewCount",
+            },
+            0,
+          ],
+        },
+      },
     },
     {
       $project: {
@@ -268,6 +429,15 @@ const getProductBySlug = async (slug) => {
           id: "$supplier._id",
           name: "$supplier.name",
         },
+        averageRating: 1,
+
+        reviewCount: 1,
+
+        ratingDistribution: 1,
+
+        recentReviews: 1,
+
+        relatedProducts: 1,
       },
     },
   ]);

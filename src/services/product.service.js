@@ -5,7 +5,7 @@ const getProducts = async (query) => {
 };
 
 const getProductBySlug = async (slug) => {
-    const product = await productRepository(slug);
+    const product = await productRepository.getProductBySlug(slug);
 
     if (!product) {
     throw new Error(
