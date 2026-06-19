@@ -16,7 +16,11 @@ const getProductsSchema = Joi.object({
 
   minPrice: Joi.number().min(0),
 
-  maxPrice: Joi.number().min(Joi.ref("minPrice")),
+  maxPrice: Joi.number().when("minPrice", {
+    is: Joi.exist(),
+    then: Joi.number().min(Joi.ref("minPrice")),
+    otherwise: Joi.number().min(0),
+  }),
 
   sort: Joi.string().valid(
     "price",
