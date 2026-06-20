@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Product = require("./../models/product.model");
 const Review = require("./../models/review.model");
 const reviewRepository = require("./../repositories/review.repository");
@@ -14,7 +15,11 @@ const createReview = async (payload) => {
     throw new Error("Product is inactive");
   }
 
-  return reviewRepository.createReview(payload);
+  const review = await reviewRepository.createReview(payload);
+
+  await recalculateReviewStats(payload.productId);
+
+  return review;
 };
 
 //get reviews by productId
@@ -35,21 +40,83 @@ const getReviewSummary = async (productId) => {
 };
 
 //update review
-const updateReview = (reviewId, payload) => {
-  return reviewRepository.updateReview(reviewId, payload);
+const updateReview = async (reviewId, payload) => {
+  const review = await reviewRepository.updateReview(reviewId, payload);
+
+  await recalculateReviewStats(review.productId);
+
+  return review;
 };
 
 const deleteReview = async (reviewId) => {
-  const review = await Review.findById(reviewId);
+  const reviewExist = await Review.findById(reviewId);
 
-  if (!review) {
+  if (!reviewExist) {
     throw new ApiError(404, "Review not found");
   }
 
-  if (review.isDeleted) {
+  if (reviewExist.isDeleted) {
     throw new ApiError(400, "Review already deleted");
   }
-  return reviewRepository.deleteReview(reviewId);
+  const review = await reviewRepository.deleteReview(reviewId);
+
+  await recalculateReviewStats(review.productId);
+
+  return review;
+};
+
+//helper function
+const recalculateReviewStats = async (productId) => {
+  const stats = await Review.aggregate([
+    {
+      $match: {
+        productId: new mongoose.Types.ObjectId(productId),
+        status: "APPROVED",
+        isDeleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+
+        averageRating: {
+          $avg: "$rating",
+        },
+
+        reviewCount: {
+          $sum: 1,
+        },
+      },
+    },
+  ]);
+
+  const distribution = await Review.aggregate([
+    {
+      $match: {
+        productId: new mongoose.Types.ObjectId(productId),
+        status: "APPROVED",
+        isDeleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: "$rating",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  distribution.forEach((item) => {
+    ratingDistribution[item._id] = item.count;
+  });
+
+  //update product
+  await Product.findByIdAndUpdate(productId, {
+    averageRating: Number(stats[0].averageRating?.toFixed(1)) || 0,
+    reviewCount: Number(stats[0].reviewCount) || 0,
+    ratingDistribution,
+  });
 };
 
 module.exports = {

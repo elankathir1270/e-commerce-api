@@ -5,19 +5,16 @@ const getProducts = async (query) => {
 };
 
 const getProductBySlug = async (slug) => {
-    const product = await productRepository.getProductBySlug(slug);
+  const product = await productRepository.getProductBySlug(slug);
 
-    if (!product) {
-    throw new Error(
-      404,
-      "Product not found"
-    );
+  if (!product) {
+    throw new Error(404, "Product not found");
   }
 
-  return product
-}
+  return product;
+};
 
 module.exports = {
-  getProducts,getProductBySlug
-
+  getProducts,
+  getProductBySlug,
 };

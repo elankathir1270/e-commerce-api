@@ -226,68 +226,6 @@ const getProductBySlug = async (slug) => {
       },
     },
     {
-      //review statistics lookup
-      $lookup: {
-        from: "reviews",
-        let: { productId: "$_id" },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $eq: ["$productId", "$$productId"],
-              },
-              status: "APPROVED",
-              isDeleted: false,
-            },
-          },
-          {
-            $group: {
-              _id: null,
-
-              averageRating: {
-                $avg: "$rating",
-              },
-
-              reviewCount: {
-                $sum: 1,
-              },
-            },
-          },
-        ],
-        as: "reviewStats",
-      },
-    },
-    {
-      //rating distribution lookup
-      $lookup: {
-        from: "reviews",
-        let: {
-          productId: "$_id",
-        },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $eq: ["$productId", "$$productId"],
-              },
-              status: "APPROVED",
-              isDeleted: false,
-            },
-          },
-          {
-            $group: {
-              _id: "$rating",
-
-              count: {
-                $sum: 1,
-              },
-            },
-          },
-        ],
-        as: "ratingDistribution",
-      },
-    },
-    {
       //recent reviews lookup
       $lookup: {
         from: "reviews",
@@ -370,27 +308,6 @@ const getProductBySlug = async (slug) => {
       $addFields: {
         category: { $first: "$category" },
         supplier: { $first: "$supplier" },
-        averageRating: {
-          $ifNull: [
-            {
-              $round: [
-                {
-                  $first: "$reviewStats.averageRating",
-                },
-                1,
-              ],
-            },
-            0,
-          ],
-        },
-        reviewCount: {
-          $ifNull: [
-            {
-              $first: "$reviewStats.reviewCount",
-            },
-            0,
-          ],
-        },
       },
     },
     {
