@@ -62,8 +62,26 @@ const productSchema = new mongoose.Schema(
 
     quantity: {
       type: Number,
+      required: true,
       default: 0,
       min: 0,
+    },
+
+    reservedQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    availableQuantity: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    lowStockThreshold: {
+      type: Number,
+      default: 10,
     },
 
     isAvailable: {
@@ -90,20 +108,19 @@ const productSchema = new mongoose.Schema(
     },
     averageRating: {
       type: Number,
-      default: 0
+      default: 0,
     },
     reviewCount: {
       type: Number,
-      default: 0
+      default: 0,
     },
     ratingDistribution: {
-      5: {type: Number, default: 0},
-      4: {type: Number, default: 0},
-      3: {type: Number, default: 0},
-      2: {type: Number, default: 0},
-      1: {type: Number, default: 0},
-    }
-    
+      5: { type: Number, default: 0 },
+      4: { type: Number, default: 0 },
+      3: { type: Number, default: 0 },
+      2: { type: Number, default: 0 },
+      1: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,
@@ -122,16 +139,27 @@ productSchema.index({ createdAt: -1 });
 
 //search index
 productSchema.index({
-    name: "text",
-    shortDescription: "text",
-    description: "text"
-})
+  name: "text",
+  shortDescription: "text",
+  description: "text",
+});
+
+productSchema.index({
+  isAvailable: 1,
+  availableQuantity: 1
+});
+
+//low stock monitoring
+productSchema.index({
+  availableQuantity: 1,
+  lowStockThreshold: 1
+});
 
 //validate sales price before saving to db
-productSchema.pre('save', async function(){
-    if(this.salePrice && this.salePrice > this.price) {
-        throw new Error("Sale price cannot be greater than price");
-    }
-})
+productSchema.pre("save", async function () {
+  if (this.salePrice && this.salePrice > this.price) {
+    throw new Error("Sale price cannot be greater than price");
+  }
+});
 
 module.exports = mongoose.model("Product", productSchema);

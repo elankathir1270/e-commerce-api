@@ -11,6 +11,7 @@ const generateProducts = async () => {
   for (let i = 1; i <= 50; i++) {
     const category = categories[Math.floor(Math.random() * categories.length)];
     const supplier = suppliers[Math.floor(Math.random() * suppliers.length)];
+    const quantity = Math.floor(Math.random() * 100);
 
     products.push({
       name: `Product ${i}`,
@@ -33,7 +34,13 @@ const generateProducts = async () => {
 
       salePrice: Math.floor(Math.random() * 50000) + 500,
 
-      quantity: Math.floor(Math.random() * 100),
+      quantity,
+
+      reservedQuantity: 0,
+
+      availableQuantity: quantity,
+
+      lowStockThreshold: 10,
 
       isAvailable: Math.random() > 0.2,
 
