@@ -3,84 +3,44 @@ const { calculateAvailableQuantity } = require("./../utils/inventory.utils");
 
 //increase stock
 const increaseStock = async (productId, quantity, note) => {
-  const product = await inventoryRepository.getProduct(productId);
+  const product = await inventoryRepository.increaseStockAtomic(productId,quantity);
 
   if (!product) {
     throw new Error(404, "Product not found");
   }
 
-  const previousStock = product.quantity;
-
-  const newStock = previousStock + quantity;
-
-  const availableQuantity = calculateAvailableQuantity(
-    newStock,
-    product.reservedQuantity,
-  );
-
-  //update to product
-  const updateProduct = await inventoryRepository.updateProductInventory(
-    productId,
-    {
-      quantity: newStock,
-      availableQuantity,
-    },
-  );
-
-  //create inventory log
+ //create inventory log
   await inventoryRepository.createTransaction({
     productId,
     type: "PURCHASE",
     quantity,
-    previousStock,
-    newStock,
+    previousStock: product.quantity - quantity,
+    newStock: product.quantity,
     note,
   });
 
-  return updateProduct;
+  return product;
 };
 
 //decrease stock
 const decreaseStock = async (productId, quantity, note) => {
-  const product = await inventoryRepository.getProduct(productId);
+  const product = await inventoryRepository.decreaseStockAtomic(productId,quantity);
 
   if (!product) {
-    throw new Error(404, "Product not found");
-  }
-
-  if (quantity > product.availableQuantity) {
     throw new Error(400, "Insufficient stock");
   }
-
-  const previousStock = product.quantity;
-
-  const newStock = previousStock - quantity;
-
-  const availableQuantity = calculateAvailableQuantity(
-    newStock,
-    product.reservedQuantity,
-  );
-
-  //update product
-  const updateProduct = await inventoryRepository.updateProductInventory(
-    productId,
-    {
-      quantity: newStock,
-      availableQuantity,
-    },
-  );
 
   //create inventory log
   await inventoryRepository.createTransaction({
     productId,
     type: "SALE",
     quantity,
-    previousStock,
-    newStock,
+    previousStock: product.quantity + quantity,
+    newStock: product.quantity,
     note,
   });
 
-  return updateProduct;
+  return product;
 };
 
 //adjust stock
