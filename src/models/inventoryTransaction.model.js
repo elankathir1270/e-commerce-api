@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const {
   INVENTORY_TRANSACTION_TYPES,
 } = require("./../constants/inventory.constants");
-const { string } = require("joi");
 
 const inventoryTransactionSchema = new mongoose.Schema(
   {
@@ -12,7 +11,7 @@ const inventoryTransactionSchema = new mongoose.Schema(
       required: true,
     },
     type: {
-      type: string,
+      type: String,
       enum: Object.values(INVENTORY_TRANSACTION_TYPES),
       required: true,
     },
@@ -21,14 +20,17 @@ const inventoryTransactionSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
-    previousStock: {
-      type: Number,
-      required: true,
-    },
-    newStock: {
-      type: Number,
-      required: true,
-    },
+    previousQuantity: Number,
+
+    newQuantity: Number,
+
+    previousReservedQuantity: Number,
+
+    newReservedQuantity: Number,
+
+    previousAvailableQuantity: Number,
+
+    newAvailableQuantity: Number,
     note: {
       type: String,
       trim: true,
@@ -41,14 +43,9 @@ const inventoryTransactionSchema = new mongoose.Schema(
   },
 );
 
-productSchema.index({
-  availableQuantity: 1,
-  lowStockThreshold: 1
-});
-
 //filter by type
 inventoryTransactionSchema.index({
-  type: 1
+  type: 1,
 });
 
 module.exports = mongoose.model(

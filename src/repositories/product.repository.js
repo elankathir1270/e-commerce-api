@@ -362,7 +362,16 @@ const getProductBySlug = async (slug) => {
   return product;
 };
 
+const updateProduct = (id, payload, session = null) => {
+  return Product.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+    session,
+  });
+};
+
 module.exports = {
   getProducts,
   getProductBySlug,
+  updateProduct
 };
