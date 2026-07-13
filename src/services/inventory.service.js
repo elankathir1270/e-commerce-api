@@ -9,7 +9,7 @@ const {
 } = require("./../constants/inventory.constants");
 
 //increase stock
-const increaseStock = async (productId, quantity) => {
+const increaseStock = async (productId, quantity,note) => {
   const product = await inventoryRepository.getProduct(productId);
 
   if (!product) {
@@ -32,7 +32,7 @@ const increaseStock = async (productId, quantity) => {
     quantity,
     previous: snapshot,
     current: updatedProduct,
-    note: `Increased for ${reference.type} (${reference.id})`,
+    note,
   });
   //create inventory log
   await inventoryRepository.createInventoryTransaction(transaction);
@@ -41,7 +41,7 @@ const increaseStock = async (productId, quantity) => {
 };
 
 //decrease stock
-const decreaseStock = async (productId, quantity) => {
+const decreaseStock = async (productId, quantity,note) => {
   const product = await inventoryRepository.getProduct(productId);
 
   if (!product) {
@@ -65,7 +65,7 @@ const decreaseStock = async (productId, quantity) => {
     quantity,
     previous: snapshot,
     current: updatedProduct,
-    note: `Decreased for ${reference.type} (${reference.id})`,
+    note,
   });
   //create inventory log
   await inventoryRepository.createInventoryTransaction(transaction);
@@ -159,7 +159,7 @@ const reserveStock = async (productId, quantity, reference) => {
 };
 
 //release reservation
-const releaseReservation = async (reservationId) => {
+const releaseReservation = async (reservationId,reason,note) => {
   const reservation =
     await reservationRepository.findActiveReservation(reservationId);
 
@@ -189,7 +189,7 @@ const releaseReservation = async (reservationId) => {
     reservationId,
     {
       status: "RELEASED",
-      releaseReason: "CANCELLED",
+      releaseReason: reason,
       releasedAt: new Date(),
     },
   );
@@ -201,7 +201,7 @@ const releaseReservation = async (reservationId) => {
     quantity: reservation.quantity,
     previous: snapshot,
     current: updatedProduct,
-    note: `Released reservation for ${reservation.reference.type} (${reservation.reference.id})`,
+    note,
   });
 
   // Save Inventory Transaction

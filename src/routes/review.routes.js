@@ -15,10 +15,10 @@ reviewRouter.route("/summary/:productId")
 
 
 reviewRouter.route("/")
-.post(validate(createReviewSchema,"body"),reviewController.createReview)
+.post(validate(createReviewSchema),reviewController.createReview)
 
 reviewRouter.route("/:reviewId")
-.patch(validate(updateReviewSchema,"body"),reviewController.updateReview)
+.patch(validate(updateReviewSchema),reviewController.updateReview)
 .delete(reviewController.deleteReview)
 
 module.exports = reviewRouter;
