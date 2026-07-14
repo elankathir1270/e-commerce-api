@@ -7,257 +7,291 @@ const {
 const {
   INVENTORY_TRANSACTION_TYPES,
 } = require("./../constants/inventory.constants");
+const { withTransaction } = require("./../utils/transaction.utils");
 
 //increase stock
-const increaseStock = async (productId, quantity,note) => {
-  const product = await inventoryRepository.getProduct(productId);
+const increaseStock = async (productId, quantity, note) => {
+  return withTransaction(async (session) => {
+    const product = await inventoryRepository.getProduct(productId, session);
 
-  if (!product) {
-    throw new Error(404, "Product not found");
-  }
-  const snapshot = createInventorySnapshot(product);
-  const updatedProduct = await inventoryRepository.increaseStockAtomic(
-    productId,
-    quantity,
-  );
+    if (!product) {
+      throw new Error(404, "Product not found");
+    }
+    const snapshot = createInventorySnapshot(product);
+    const updatedProduct = await inventoryRepository.increaseStockAtomic(
+      productId,
+      quantity,
+      session,
+    );
 
-  if (!updatedProduct) {
-    throw new Error(404, "Product not found");
-  }
+    if (!updatedProduct) {
+      throw new Error(404, "Product not found");
+    }
 
-  //Build Inventory Transaction
-  const transaction = buildInventoryTransaction({
-    productId,
-    type: INVENTORY_TRANSACTION_TYPES.PURCHASE,
-    quantity,
-    previous: snapshot,
-    current: updatedProduct,
-    note,
+    //Build Inventory Transaction
+    const transaction = buildInventoryTransaction({
+      productId,
+      type: INVENTORY_TRANSACTION_TYPES.PURCHASE,
+      quantity,
+      previous: snapshot,
+      current: updatedProduct,
+      note,
+    });
+    //create inventory log
+    await inventoryRepository.createInventoryTransaction(transaction, session);
+
+    return updatedProduct;
   });
-  //create inventory log
-  await inventoryRepository.createInventoryTransaction(transaction);
-
-  return updatedProduct;
 };
 
 //decrease stock
-const decreaseStock = async (productId, quantity,note) => {
-  const product = await inventoryRepository.getProduct(productId);
+const decreaseStock = async (productId, quantity, note) => {
+  return withTransaction(async (session) => {
+    const product = await inventoryRepository.getProduct(productId, session);
 
-  if (!product) {
-    throw new Error(404, "Product not found");
-  }
-  const snapshot = createInventorySnapshot(product);
+    if (!product) {
+      throw new Error(404, "Product not found");
+    }
+    const snapshot = createInventorySnapshot(product);
 
-  const updatedProduct = await inventoryRepository.decreaseStockAtomic(
-    productId,
-    quantity,
-  );
+    const updatedProduct = await inventoryRepository.decreaseStockAtomic(
+      productId,
+      quantity,
+      session,
+    );
 
-  if (!updatedProduct) {
-    throw new Error(400, "Insufficient stock");
-  }
+    if (!updatedProduct) {
+      throw new Error(400, "Insufficient stock");
+    }
 
-  //Build Inventory Transaction
-  const transaction = buildInventoryTransaction({
-    productId,
-    type: INVENTORY_TRANSACTION_TYPES.SALE,
-    quantity,
-    previous: snapshot,
-    current: updatedProduct,
-    note,
+    //Build Inventory Transaction
+    const transaction = buildInventoryTransaction({
+      productId,
+      type: INVENTORY_TRANSACTION_TYPES.SALE,
+      quantity,
+      previous: snapshot,
+      current: updatedProduct,
+      note,
+    });
+    //create inventory log
+    await inventoryRepository.createInventoryTransaction(transaction, session);
+
+    return updatedProduct;
   });
-  //create inventory log
-  await inventoryRepository.createInventoryTransaction(transaction);
-
-  return updatedProduct;
 };
 
 //adjust stock
 const adjustStock = async (productId, quantity, note) => {
-  // Load Product
-  const product = await inventoryRepository.getProduct(productId);
+  return withTransaction(async (session) => {
+    // Load Product
+    const product = await inventoryRepository.getProduct(productId, session);
 
-  if (!product) {
-    throw new Error(404, "Product not found");
-  }
+    if (!product) {
+      throw new Error(404, "Product not found");
+    }
 
-  // Snapshot
-  const snapshot = createInventorySnapshot(product);
+    // Snapshot
+    const snapshot = createInventorySnapshot(product);
 
-  // Calculate new available quantity
-  const availableQuantity = calculateAvailableQuantity(
-    quantity,
-    product.reservedQuantity,
-  );
+    // Calculate new available quantity
+    const availableQuantity = calculateAvailableQuantity(
+      quantity,
+      product.reservedQuantity,
+    );
 
-  // Adjust Stock
-  const updatedProduct = await inventoryRepository.adjustStockAtomic(
-    productId,
-    quantity,
-    availableQuantity,
-  );
+    // Adjust Stock
+    const updatedProduct = await inventoryRepository.adjustStockAtomic(
+      productId,
+      quantity,
+      availableQuantity,
+      session,
+    );
 
-  // Build Inventory Transaction
-  const transaction = buildInventoryTransaction({
-    productId,
-    type: INVENTORY_TRANSACTION_TYPES.ADJUSTMENT,
-    quantity: quantity - snapshot.quantity, // adjustment difference
-    previous: snapshot,
-    current: updatedProduct,
-    note,
+    // Build Inventory Transaction
+    const transaction = buildInventoryTransaction({
+      productId,
+      type: INVENTORY_TRANSACTION_TYPES.ADJUSTMENT,
+      quantity: quantity - snapshot.quantity, // adjustment difference
+      previous: snapshot,
+      current: updatedProduct,
+      note,
+    });
+
+    // Save Inventory Transaction
+    await inventoryRepository.createInventoryTransaction(transaction, session);
+
+    return updatedProduct;
   });
-
-  // Save Inventory Transaction
-  await inventoryRepository.createInventoryTransaction(transaction);
-
-  return updatedProduct;
 };
 
 //reserve stock
 const reserveStock = async (productId, quantity, reference) => {
-  const product = await inventoryRepository.getProduct(productId);
+  return withTransaction(async (session) => {
+    const product = await inventoryRepository.getProduct(productId, session);
 
-  if (!product) {
-    throw new Error(404, "Product not found");
-  }
+    if (!product) {
+      throw new Error(404, "Product not found");
+    }
 
-  const snapshot = createInventorySnapshot(product);
+    const snapshot = createInventorySnapshot(product);
 
-  const updatedProduct = await inventoryRepository.reserveStockAtomic(
-    productId,
-    quantity,
-  );
+    const updatedProduct = await inventoryRepository.reserveStockAtomic(
+      productId,
+      quantity,
+      session,
+    );
 
-  if (!updatedProduct) {
-    throw new Error(400, "Insufficient stock");
-  }
+    if (!updatedProduct) {
+      throw new Error(400, "Insufficient stock");
+    }
 
-  //create reservation
-  const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-  const reservation = await reservationRepository.createReservation({
-    productId,
-    quantity,
-    reference,
-    status: "ACTIVE",
-    expiresAt,
+    //create reservation
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const reservation = await reservationRepository.createReservation(
+      {
+        productId,
+        quantity,
+        reference,
+        status: "ACTIVE",
+        expiresAt,
+      },
+      session,
+    );
+
+    //Build Inventory Transaction
+    const transaction = buildInventoryTransaction({
+      productId,
+      type: INVENTORY_TRANSACTION_TYPES.RESERVATION,
+      quantity,
+      previous: snapshot,
+      current: updatedProduct,
+      note: `Reserved for ${reference.type} (${reference.id})`,
+    });
+    //create inventory log
+    await inventoryRepository.createInventoryTransaction(transaction, session);
+
+    return reservation;
   });
-
-  //Build Inventory Transaction
-  const transaction = buildInventoryTransaction({
-    productId,
-    type: INVENTORY_TRANSACTION_TYPES.RESERVATION,
-    quantity,
-    previous: snapshot,
-    current: updatedProduct,
-    note: `Reserved for ${reference.type} (${reference.id})`,
-  });
-  //create inventory log
-  await inventoryRepository.createInventoryTransaction(transaction);
-
-  return reservation;
 };
 
 //release reservation
-const releaseReservation = async (reservationId,reason,note) => {
-  const reservation =
-    await reservationRepository.findActiveReservation(reservationId);
+const releaseReservation = async (reservationId, reason, note) => {
+  return withTransaction(async (session) => {
+    const reservation = await reservationRepository.findActiveReservation(
+      reservationId,
+      session,
+    );
 
-  if (!reservation) {
-    throw new Error(404, "Reservation not found");
-  }
+    if (!reservation) {
+      throw new Error(404, "Reservation not found");
+    }
 
-  const product = await inventoryRepository.getProduct(reservation.productId);
+    const product = await inventoryRepository.getProduct(
+      reservation.productId,
+      session,
+    );
 
-  if (!product) {
-    throw new Error(404, "Product not found");
-  }
+    if (!product) {
+      throw new Error(404, "Product not found");
+    }
 
-  const snapshot = createInventorySnapshot(product);
+    const snapshot = createInventorySnapshot(product);
 
-  const updatedProduct = await inventoryRepository.releaseReservationAtomic(
-    reservation.productId,
-    reservation.quantity,
-  );
+    const updatedProduct = await inventoryRepository.releaseReservationAtomic(
+      reservation.productId,
+      reservation.quantity,
+      session,
+    );
 
-  if (!updatedProduct) {
-    throw new Error(400, "Failed to release reservation");
-  }
+    if (!updatedProduct) {
+      throw new Error(400, "Failed to release reservation");
+    }
 
-  // Update Reservation
-  const updatedReservation = await reservationRepository.updateReservation(
-    reservationId,
-    {
-      status: "RELEASED",
-      releaseReason: reason,
-      releasedAt: new Date(),
-    },
-  );
+    // Update Reservation
+    const updatedReservation = await reservationRepository.updateReservation(
+      reservationId,
+      {
+        status: "RELEASED",
+        releaseReason: reason,
+        releasedAt: new Date(),
+      },
+      session,
+    );
 
-  // Build Inventory Transaction
-  const transaction = buildInventoryTransaction({
-    productId: reservation.productId,
-    type: INVENTORY_TRANSACTION_TYPES.RESERVATION_RELEASE,
-    quantity: reservation.quantity,
-    previous: snapshot,
-    current: updatedProduct,
-    note,
+    // Build Inventory Transaction
+    const transaction = buildInventoryTransaction({
+      productId: reservation.productId,
+      type: INVENTORY_TRANSACTION_TYPES.RESERVATION_RELEASE,
+      quantity: reservation.quantity,
+      previous: snapshot,
+      current: updatedProduct,
+      note,
+    });
+
+    // Save Inventory Transaction
+    await inventoryRepository.createInventoryTransaction(transaction, session);
+
+    return updatedReservation;
   });
-
-  // Save Inventory Transaction
-  await inventoryRepository.createInventoryTransaction(transaction);
-
-  return updatedReservation;
 };
 
 //consume reservation
 const consumeReservation = async (reservationId) => {
-  const reservation =
-    await reservationRepository.findActiveReservation(reservationId);
+  return withTransaction(async (session) => {
+    const reservation = await reservationRepository.findActiveReservation(
+      reservationId,
+      session,
+    );
 
-  if (!reservation) {
-    throw new Error(404, "Reservation not found");
-  }
+    if (!reservation) {
+      throw new Error(404, "Reservation not found");
+    }
 
-  const product = await inventoryRepository.getProduct(reservation.productId);
+    const product = await inventoryRepository.getProduct(
+      reservation.productId,
+      session,
+    );
 
-  if (!product) {
-    throw new Error(404, "Product not found");
-  }
+    if (!product) {
+      throw new Error(404, "Product not found");
+    }
 
-  const snapshot = createInventorySnapshot(product);
+    const snapshot = createInventorySnapshot(product);
 
-  const updatedProduct = await inventoryRepository.consumeReservationAtomic(
-    reservation.productId,
-    reservation.quantity,
-  );
+    const updatedProduct = await inventoryRepository.consumeReservationAtomic(
+      reservation.productId,
+      reservation.quantity,
+      session,
+    );
 
-  if (!updatedProduct) {
-    throw new Error(400, "Failed to consume reservation");
-  }
-  // Update Reservation
-  const updatedReservation = await reservationRepository.updateReservation(
-    reservationId,
-    {
-      status: "CONSUMED",
-      consumedAt: new Date(),
-    },
-  );
+    if (!updatedProduct) {
+      throw new Error(400, "Failed to consume reservation");
+    }
+    // Update Reservation
+    const updatedReservation = await reservationRepository.updateReservation(
+      reservationId,
+      {
+        status: "CONSUMED",
+        consumedAt: new Date(),
+      },
+      session,
+    );
 
-  // Build Inventory Transaction
-  const transaction = buildInventoryTransaction({
-    productId: reservation.productId,
-    type: INVENTORY_TRANSACTION_TYPES.SALE,
-    quantity: reservation.quantity,
-    previous: snapshot,
-    current: updatedProduct,
-    note: `Consumed reservation for ${reservation.reference.type} (${reservation.reference.id})`,
+    // Build Inventory Transaction
+    const transaction = buildInventoryTransaction({
+      productId: reservation.productId,
+      type: INVENTORY_TRANSACTION_TYPES.SALE,
+      quantity: reservation.quantity,
+      previous: snapshot,
+      current: updatedProduct,
+      note: `Consumed reservation for ${reservation.reference.type} (${reservation.reference.id})`,
+    });
+
+    // Save Inventory Transaction
+    await inventoryRepository.createInventoryTransaction(transaction, session);
+
+    return updatedReservation;
   });
-
-  // Save Inventory Transaction
-  await inventoryRepository.createInventoryTransaction(transaction);
-
-  return updatedReservation;
 };
 
 const buildInventoryTransaction = ({
