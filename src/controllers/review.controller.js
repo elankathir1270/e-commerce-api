@@ -1,62 +1,41 @@
 const reviewService = require("./../services/review.service");
+const catchAsync = require("./../utils/catchAsync");
 const sendResponse = require("./../utils/sendResponse.utils");
 
-const createReview = async (req, res, next) => {
-  try {
-    const review = await reviewService.createReview(req.body);
+const createReview = catchAsync(async (req, res) => {
+  const review = await reviewService.createReview(req.body);
 
-    sendResponse(res, { statusCode: 201, data: review });
-  } catch (error) {
-    next(error);
-  }
-};
+  sendResponse(res, { statusCode: 201, data: review });
+});
 
-const updateReview = async (req, res, next) => {
-  try {
-    const review = await reviewService.updateReview(
-      req.params.reviewId,
-      req.body,
-    );
+const updateReview = catchAsync(async (req, res) => {
+  const review = await reviewService.updateReview(
+    req.params.reviewId,
+    req.body,
+  );
 
-    sendResponse(res, { statusCode: 200, data: review });
-  } catch (error) {
-    next(error);
-  }
-};
+  sendResponse(res, { statusCode: 200, data: review });
+});
 
-const deleteReview = async (req, res, next) => {
-  try {
-    await reviewService.deleteReview(req.params.reviewId);
+const deleteReview = catchAsync(async (req, res) => {
+  await reviewService.deleteReview(req.params.reviewId);
 
-    sendResponse(res, { statusCode: 200, message: "review deleted" });
-  } catch (error) {
-    next(error);
-  }
-};
+  sendResponse(res, { statusCode: 200, message: "review deleted" });
+});
 
-const getReviewsByProduct = async (req, res, next) => {
-  try {
-    const reviews = await reviewService.getReviewsByProduct(
-      req.params.productId,
-    );
+const getReviewsByProduct = catchAsync(async (req, res) => {
+  const reviews = await reviewService.getReviewsByProduct(req.params.productId);
 
-    sendResponse(res, { statusCode: 200, data: reviews });
-  } catch (error) {
-    next(error);
-  }
-};
+  sendResponse(res, { statusCode: 200, data: reviews });
+});
 
-const getReviewSummary = async (req, res, next) => {
-  try {
-    const reviewSummary = await reviewService.getReviewSummary(
-      req.params.productId,
-    );
+const getReviewSummary = catchAsync(async (req, res) => {
+  const reviewSummary = await reviewService.getReviewSummary(
+    req.params.productId,
+  );
 
-    sendResponse(res, { statusCode: 200, data: reviewSummary });
-  } catch (error) {
-    next(error);
-  }
-};
+  sendResponse(res, { statusCode: 200, data: reviewSummary });
+});
 
 module.exports = {
   createReview,
