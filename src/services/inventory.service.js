@@ -8,6 +8,7 @@ const {
   INVENTORY_TRANSACTION_TYPES,
 } = require("./../constants/inventory.constants");
 const { withTransaction } = require("./../utils/transaction.utils");
+const ApiError = require("./../utils/apiError");
 
 //increase stock
 const increaseStock = async (productId, quantity, note) => {
@@ -15,7 +16,7 @@ const increaseStock = async (productId, quantity, note) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
     const snapshot = createInventorySnapshot(product);
     const updatedProduct = await inventoryRepository.increaseStockAtomic(
@@ -25,7 +26,7 @@ const increaseStock = async (productId, quantity, note) => {
     );
 
     if (!updatedProduct) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
 
     //Build Inventory Transaction
@@ -50,7 +51,7 @@ const decreaseStock = async (productId, quantity, note) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
     const snapshot = createInventorySnapshot(product);
 
@@ -61,7 +62,7 @@ const decreaseStock = async (productId, quantity, note) => {
     );
 
     if (!updatedProduct) {
-      throw new Error(400, "Insufficient stock");
+      throw new ApiError(400, "Insufficient stock");
     }
 
     //Build Inventory Transaction
@@ -87,7 +88,7 @@ const adjustStock = async (productId, quantity, note) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
 
     // Snapshot
@@ -130,7 +131,7 @@ const reserveStock = async (productId, quantity, reference) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
 
     const snapshot = createInventorySnapshot(product);
@@ -142,7 +143,7 @@ const reserveStock = async (productId, quantity, reference) => {
     );
 
     if (!updatedProduct) {
-      throw new Error(400, "Insufficient stock");
+      throw new ApiError(400, "Insufficient stock");
     }
 
     //create reservation
@@ -183,7 +184,7 @@ const releaseReservation = async (reservationId, reason, note) => {
     );
 
     if (!reservation) {
-      throw new Error(404, "Reservation not found");
+      throw new ApiError(404, "Reservation not found");
     }
 
     const product = await inventoryRepository.getProduct(
@@ -192,7 +193,7 @@ const releaseReservation = async (reservationId, reason, note) => {
     );
 
     if (!product) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
 
     const snapshot = createInventorySnapshot(product);
@@ -204,7 +205,7 @@ const releaseReservation = async (reservationId, reason, note) => {
     );
 
     if (!updatedProduct) {
-      throw new Error(400, "Failed to release reservation");
+      throw new ApiError(400, "Failed to release reservation");
     }
 
     // Update Reservation
@@ -244,7 +245,7 @@ const consumeReservation = async (reservationId) => {
     );
 
     if (!reservation) {
-      throw new Error(404, "Reservation not found");
+      throw new ApiError(404, "Reservation not found");
     }
 
     const product = await inventoryRepository.getProduct(
@@ -253,7 +254,7 @@ const consumeReservation = async (reservationId) => {
     );
 
     if (!product) {
-      throw new Error(404, "Product not found");
+      throw new ApiError(404, "Product not found");
     }
 
     const snapshot = createInventorySnapshot(product);
@@ -265,7 +266,7 @@ const consumeReservation = async (reservationId) => {
     );
 
     if (!updatedProduct) {
-      throw new Error(400, "Failed to consume reservation");
+      throw new ApiError(400, "Failed to consume reservation");
     }
     // Update Reservation
     const updatedReservation = await reservationRepository.updateReservation(

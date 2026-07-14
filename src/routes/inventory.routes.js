@@ -50,4 +50,4 @@ PATCH	/inventory/reservations/:reservationId/consume	Convert reservation into a 
  */
 
 
-module.exports(inventoryRouter);
+module.exports = inventoryRouter;

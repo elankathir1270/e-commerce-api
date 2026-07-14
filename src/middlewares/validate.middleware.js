@@ -1,3 +1,5 @@
+const ApiError = require("./../utils/apiError");
+
 const validate = (schema) => {
   return (req, res, next) => {
     const sources = ["params", "query", "body"];
@@ -11,12 +13,8 @@ const validate = (schema) => {
       });
 
       if (error) {
-        return res.status(400).json({
-          status: "Error",
-          message: error.details
-            .map((d) => d.message)
-            .join(", "),
-        });
+        const messages = error.details.map((d) => d.message);
+        return next(new ApiError(400, messages.join(", ")));
       }
 
       req[source] = value;
