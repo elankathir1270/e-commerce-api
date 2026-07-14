@@ -1,13 +1,11 @@
 const reviewService = require("./../services/review.service");
+const sendResponse = require("./../utils/sendResponse.utils");
 
 const createReview = async (req, res, next) => {
   try {
     const review = await reviewService.createReview(req.body);
 
-    res.status(201).json({
-      status: "success",
-      data: review,
-    });
+    sendResponse(res, { statusCode: 201, data: review });
   } catch (error) {
     next(error);
   }
@@ -15,12 +13,12 @@ const createReview = async (req, res, next) => {
 
 const updateReview = async (req, res, next) => {
   try {
-    const review = await reviewService.updateReview(req.params.reviewId,req.body);
+    const review = await reviewService.updateReview(
+      req.params.reviewId,
+      req.body,
+    );
 
-    res.status(200).json({
-      status: "success",
-      data: review,
-    });
+    sendResponse(res, { statusCode: 200, data: review });
   } catch (error) {
     next(error);
   }
@@ -30,10 +28,7 @@ const deleteReview = async (req, res, next) => {
   try {
     await reviewService.deleteReview(req.params.reviewId);
 
-    res.status(200).json({
-      status: "success",
-      message: "review deleted",
-    });
+    sendResponse(res, { statusCode: 200, message: "review deleted" });
   } catch (error) {
     next(error);
   }
@@ -41,12 +36,11 @@ const deleteReview = async (req, res, next) => {
 
 const getReviewsByProduct = async (req, res, next) => {
   try {
-    const reviews = await reviewService.getReviewsByProduct(req.params.productId);
+    const reviews = await reviewService.getReviewsByProduct(
+      req.params.productId,
+    );
 
-    res.status(200).json({
-      status: "success",
-      data: reviews,
-    });
+    sendResponse(res, { statusCode: 200, data: reviews });
   } catch (error) {
     next(error);
   }
@@ -54,12 +48,11 @@ const getReviewsByProduct = async (req, res, next) => {
 
 const getReviewSummary = async (req, res, next) => {
   try {
-    const reviewSummary = await reviewService.getReviewSummary(req.params.productId);
+    const reviewSummary = await reviewService.getReviewSummary(
+      req.params.productId,
+    );
 
-    res.status(200).json({
-      status: "success",
-      data: reviewSummary,
-    });
+    sendResponse(res, { statusCode: 200, data: reviewSummary });
   } catch (error) {
     next(error);
   }
@@ -70,5 +63,5 @@ module.exports = {
   getReviewsByProduct,
   getReviewSummary,
   updateReview,
-  deleteReview
+  deleteReview,
 };

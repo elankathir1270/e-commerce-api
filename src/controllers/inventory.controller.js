@@ -1,4 +1,5 @@
 const inventoryService = require("./../services/inventory.service");
+const sendResponse = require("./../utils/sendResponse.utils");
 
 const increaseStock = async (req, res, next) => {
   try {
@@ -8,8 +9,8 @@ const increaseStock = async (req, res, next) => {
       note: req.body.note,
     });
 
-    res.status(200).json({
-      status: "success",
+    sendResponse(res, {
+      statusCode: 200,
       message: "Stock increased successfully.",
       data: product,
     });
@@ -26,8 +27,8 @@ const decreaseStock = async (req, res, next) => {
       note: req.body.note,
     });
 
-    res.status(200).json({
-      status: "success",
+    sendResponse(res, {
+      statusCode: 200,
       message: "Stock decreased successfully.",
       data: product,
     });
@@ -44,8 +45,8 @@ const adjustStock = async (req, res, next) => {
       note: req.body.note,
     });
 
-    res.status(200).json({
-      status: "success",
+    sendResponse(res, {
+      statusCode: 200,
       message: "Stock adjusted successfully.",
       data: product,
     });
@@ -65,8 +66,8 @@ const reserveStock = async (req, res, next) => {
       },
     });
 
-    res.status(201).json({
-      status: "success",
+    sendResponse(res, {
+      statusCode: 201,
       message: "Inventory reserved successfully.",
       data: reservation,
     });
@@ -83,8 +84,8 @@ const releaseReservation = async (req, res, next) => {
       note: req.body.note,
     });
 
-    res.status(200).json({
-      status: "success",
+    sendResponse(res, {
+      statusCode: 200,
       message: "Reservation released successfully.",
       data: reservation,
     });
@@ -100,8 +101,8 @@ const consumeReservation = async (req, res, next) => {
       note: req.body.note,
     });
 
-    res.status(200).json({
-      status: "success",
+    sendResponse(res, {
+      statusCode: 200,
       message: "Reservation consumed successfully.",
       data: reservation,
     });
