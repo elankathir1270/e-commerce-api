@@ -197,7 +197,7 @@ const releaseReservation = async (reservationId,reason,note) => {
   // Build Inventory Transaction
   const transaction = buildInventoryTransaction({
     productId: reservation.productId,
-    type: INVENTORY_TRANSACTION_TYPES.RELEASE,
+    type: INVENTORY_TRANSACTION_TYPES.RESERVATION_RELEASE,
     quantity: reservation.quantity,
     previous: snapshot,
     current: updatedProduct,
