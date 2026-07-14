@@ -2,17 +2,18 @@ const mongoose = require("mongoose");
 const Product = require("./../models/product.model");
 const Review = require("./../models/review.model");
 const reviewRepository = require("./../repositories/review.repository");
+const ApiError = require("./../utils/apiError");
 
 //create Review
 const createReview = async (payload) => {
   const product = await Product.findById(payload.productId);
 
   if (!product) {
-    throw new Error("Product not found");
+    throw new ApiError("Product not found");
   }
 
   if (product.status !== "ACTIVE") {
-    throw new Error("Product is inactive");
+    throw new ApiError("Product is inactive");
   }
 
   const review = await reviewRepository.createReview(payload);
