@@ -4,8 +4,8 @@ const devErrors = (res, error) => {
   res.status(error.statusCode).json({
     status: error.status,
     message: error.message,
-    stackTrace: error.stackTrace,
-    error: error,
+    stack: error.stack,
+    error,
   });
 };
 
@@ -25,7 +25,7 @@ const prodErrors = (res, error) => {
 
 const handleCastError = (error) => {
   const errorMessage = `Invalid value ${error.value}, for the property ${error.path}.`;
-  return new ApiError(errorMessage, 400);
+  return new ApiError(400,errorMessage);
 };
 
 const duplicateKeyHandler = (error) => {
@@ -33,13 +33,12 @@ const duplicateKeyHandler = (error) => {
   const value = error.keyValue[field];
 
   const errorMessage = `A document with field - ${field} and value - ${value} is already exist`;
-  return new ApiError(errorMessage, 400);
+  return new ApiError(400,errorMessage);
 };
 
-
 module.exports = (error, req, res, next) => {
-  ((this.statusCode = this.statusCode || 500),
-    (this.status = this.status || "Error"));
+  error.statusCode = error.statusCode || 500;
+  error.status = error.status || "Error";
 
   if (process.env.NODE_ENV === "development") {
     devErrors(res, error);
