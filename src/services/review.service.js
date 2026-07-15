@@ -9,11 +9,11 @@ const createReview = async (payload) => {
   const product = await Product.findById(payload.productId);
 
   if (!product) {
-    throw new ApiError("Product not found");
+    throw new ApiError(404,"Product not found");
   }
 
   if (product.status !== "ACTIVE") {
-    throw new ApiError("Product is inactive");
+    throw new ApiError(400,"Product is inactive");
   }
 
   const review = await reviewRepository.createReview(payload);

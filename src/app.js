@@ -12,7 +12,7 @@ app.use(express.json());
 //add routes for app
 app.use("/api/v1/products",productRouter);
 app.use("/api/v1/reviews", reviewRouter);
-app.use("api/v1/inventory", inventoryRouter);
+app.use("/api/v1/inventory", inventoryRouter);
 
 //Global error handler
 app.use(globalErrorHandler);

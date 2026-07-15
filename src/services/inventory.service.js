@@ -11,7 +11,7 @@ const { withTransaction } = require("./../utils/transaction.utils");
 const ApiError = require("./../utils/apiError");
 
 //increase stock
-const increaseStock = async (productId, quantity, note) => {
+const increaseStock = async ({productId, quantity, note}) => {
   return withTransaction(async (session) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
@@ -46,7 +46,7 @@ const increaseStock = async (productId, quantity, note) => {
 };
 
 //decrease stock
-const decreaseStock = async (productId, quantity, note) => {
+const decreaseStock = async ({productId, quantity, note}) => {
   return withTransaction(async (session) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
@@ -82,7 +82,7 @@ const decreaseStock = async (productId, quantity, note) => {
 };
 
 //adjust stock
-const adjustStock = async (productId, quantity, note) => {
+const adjustStock = async ({productId, quantity, note}) => {
   return withTransaction(async (session) => {
     // Load Product
     const product = await inventoryRepository.getProduct(productId, session);
@@ -126,7 +126,7 @@ const adjustStock = async (productId, quantity, note) => {
 };
 
 //reserve stock
-const reserveStock = async (productId, quantity, reference) => {
+const reserveStock = async ({productId, quantity, reference}) => {
   return withTransaction(async (session) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
@@ -176,7 +176,7 @@ const reserveStock = async (productId, quantity, reference) => {
 };
 
 //release reservation
-const releaseReservation = async (reservationId, reason, note) => {
+const releaseReservation = async ({reservationId, reason, note}) => {
   return withTransaction(async (session) => {
     const reservation = await reservationRepository.findActiveReservation(
       reservationId,
@@ -237,7 +237,7 @@ const releaseReservation = async (reservationId, reason, note) => {
 };
 
 //consume reservation
-const consumeReservation = async (reservationId) => {
+const consumeReservation = async ({reservationId}) => {
   return withTransaction(async (session) => {
     const reservation = await reservationRepository.findActiveReservation(
       reservationId,
