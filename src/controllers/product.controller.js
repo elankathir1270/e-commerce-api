@@ -14,7 +14,17 @@ const getProductBySlug = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: 200, data: product });
 });
 
+const updateProduct = catchAsync(async (req, res) => {
+  const product = await productService.updateProduct(
+    req.params.id,
+    req.body
+  );
+
+  sendResponse(res, {statusCode: 200, data: product});
+});
+
 module.exports = {
   getProducts,
   getProductBySlug,
+  updateProduct
 };
