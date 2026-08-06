@@ -4,15 +4,15 @@ const {
   calculateAvailableQuantity,
   createInventorySnapshot,
 } = require("./../utils/inventory.utils");
-const {
-  INVENTORY_TRANSACTION_TYPES,
-} = require("./../constants/inventory.constants");
+const { INVENTORY_TRANSACTION_TYPES } = require("./../constants/inventory.constants");
 const { withTransaction } = require("./../utils/transaction.utils");
 const ApiError = require("./../utils/apiError");
+const { invalidateInventoryCache } = require("./../cache/cache.invalidation");
+
 
 //increase stock
 const increaseStock = async ({productId, quantity, note}) => {
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
@@ -41,13 +41,19 @@ const increaseStock = async ({productId, quantity, note}) => {
     //create inventory log
     await inventoryRepository.createInventoryTransaction(transaction, session);
 
-    return updatedProduct;
+    return { snapshot,updatedProduct };
   });
+
+  const { snapshot,updatedProduct } = result;
+  await invalidateInventoryCache({previous: snapshot, current: updatedProduct});
+
+  return updatedProduct;
+
 };
 
 //decrease stock
 const decreaseStock = async ({productId, quantity, note}) => {
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
@@ -77,13 +83,18 @@ const decreaseStock = async ({productId, quantity, note}) => {
     //create inventory log
     await inventoryRepository.createInventoryTransaction(transaction, session);
 
-    return updatedProduct;
+    return { snapshot,updatedProduct };
   });
+
+  const { snapshot,updatedProduct } = result;
+  await invalidateInventoryCache({previous: snapshot, current: updatedProduct});
+
+  return updatedProduct;
 };
 
 //adjust stock
 const adjustStock = async ({productId, quantity, note}) => {
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     // Load Product
     const product = await inventoryRepository.getProduct(productId, session);
 
@@ -107,12 +118,14 @@ const adjustStock = async ({productId, quantity, note}) => {
       availableQuantity,
       session,
     );
+    
+    const adjustmentQuantity = Math.abs(quantity - snapshot.quantity)
 
     // Build Inventory Transaction
     const transaction = buildInventoryTransaction({
       productId,
       type: INVENTORY_TRANSACTION_TYPES.ADJUSTMENT,
-      quantity: quantity - snapshot.quantity, // adjustment difference
+      quantity: adjustmentQuantity, // adjustment difference
       previous: snapshot,
       current: updatedProduct,
       note,
@@ -121,13 +134,18 @@ const adjustStock = async ({productId, quantity, note}) => {
     // Save Inventory Transaction
     await inventoryRepository.createInventoryTransaction(transaction, session);
 
-    return updatedProduct;
+    return { snapshot,updatedProduct };
   });
+
+  const { snapshot,updatedProduct } = result;
+  await invalidateInventoryCache({previous: snapshot, current: updatedProduct});
+
+  return updatedProduct;
 };
 
 //reserve stock
 const reserveStock = async ({productId, quantity, reference}) => {
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     const product = await inventoryRepository.getProduct(productId, session);
 
     if (!product) {
@@ -171,13 +189,18 @@ const reserveStock = async ({productId, quantity, reference}) => {
     //create inventory log
     await inventoryRepository.createInventoryTransaction(transaction, session);
 
-    return reservation;
+    return { reservation,snapshot,updatedProduct };
   });
+
+  const { reservation,snapshot,updatedProduct } = result;
+  await invalidateInventoryCache({previous: snapshot, current: updatedProduct});
+
+  return reservation;
 };
 
 //release reservation
 const releaseReservation = async ({reservationId, reason, note}) => {
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     const reservation = await reservationRepository.findActiveReservation(
       reservationId,
       session,
@@ -232,13 +255,18 @@ const releaseReservation = async ({reservationId, reason, note}) => {
     // Save Inventory Transaction
     await inventoryRepository.createInventoryTransaction(transaction, session);
 
-    return updatedReservation;
+    return { updatedReservation,snapshot,updatedProduct };
   });
+
+  const { updatedReservation,snapshot,updatedProduct } = result;
+  await invalidateInventoryCache({previous: snapshot, current: updatedProduct});
+
+  return updatedReservation;
 };
 
 //consume reservation
 const consumeReservation = async ({reservationId}) => {
-  return withTransaction(async (session) => {
+  const result = await withTransaction(async (session) => {
     const reservation = await reservationRepository.findActiveReservation(
       reservationId,
       session,
@@ -291,8 +319,13 @@ const consumeReservation = async ({reservationId}) => {
     // Save Inventory Transaction
     await inventoryRepository.createInventoryTransaction(transaction, session);
 
-    return updatedReservation;
+    return { updatedReservation,snapshot,updatedProduct };
   });
+
+  const { updatedReservation,snapshot,updatedProduct } = result;
+  await invalidateInventoryCache({previous: snapshot, current: updatedProduct});
+
+  return updatedReservation;
 };
 
 const buildInventoryTransaction = ({

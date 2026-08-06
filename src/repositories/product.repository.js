@@ -362,6 +362,11 @@ const getProductBySlug = async (slug) => {
   return product;
 };
 
+const getProductById = (id) => {
+  return Product.findById(id);
+};
+
+
 const updateProduct = (id, payload, session = null) => {
   return Product.findByIdAndUpdate(id, payload, {
     new: true,
@@ -373,5 +378,6 @@ const updateProduct = (id, payload, session = null) => {
 module.exports = {
   getProducts,
   getProductBySlug,
+  getProductById,
   updateProduct
 };
